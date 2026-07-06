@@ -2,6 +2,9 @@ import type {
   Board,
   BoardSummary,
   BoardType,
+  CopilotAskResponse,
+  CopilotHistoryMessage,
+  CopilotSuggestionsResponse,
   ProcessMaterialsResponse,
   RecentSession,
   SelectedResult,
@@ -181,5 +184,23 @@ export async function resetBoardsByType(boardType: Extract<BoardType, "topic" | 
     {
       method: "POST",
     },
+  );
+}
+
+export async function getCopilotSuggestions() {
+  return request<CopilotSuggestionsResponse>("/api/copilot/suggestions");
+}
+
+export async function askCopilot(question: string, history: CopilotHistoryMessage[]) {
+  return request<CopilotAskResponse>(
+    "/api/copilot/ask",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        question,
+        history,
+      }),
+    },
+    { timeoutMs: 120_000 },
   );
 }

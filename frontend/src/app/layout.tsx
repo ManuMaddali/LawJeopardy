@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { CopilotWidget } from "@/components/copilot-widget";
 import { SiteHeader } from "@/components/site-header";
 
 const inter = Inter({
@@ -57,6 +58,7 @@ export default function RootLayout({
         <div className="ambient-bg pointer-events-none fixed inset-0 -z-10" />
         <SiteHeader />
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 md:px-8">{children}</main>
+        <CopilotWidget />
       </body>
     </html>
   );

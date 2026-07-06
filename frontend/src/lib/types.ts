@@ -89,3 +89,27 @@ export interface ProcessMaterialsResponse {
   processed: Material[];
   missing_files: string[];
 }
+
+export interface CopilotHistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface CopilotSource {
+  context_id: string;
+  filename: string;
+  topic: string;
+  source_hint: string;
+  excerpt: string;
+}
+
+export interface CopilotAskResponse {
+  answer: string;
+  sources: CopilotSource[];
+  suggested_questions: string[];
+  used_context: boolean;
+}
+
+export interface CopilotSuggestionsResponse {
+  suggestions: string[];
+}
