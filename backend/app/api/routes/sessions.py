@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_owner_key
 from app.db.session import get_db
 from app.models.board import Board
 from app.models.session import StudySession
@@ -29,13 +30,24 @@ router = APIRouter()
 def list_recent_sessions(
     limit: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
 ) -> list[SessionRecent]:
-    sessions = db.scalars(select(StudySession).order_by(StudySession.started_at.desc()).limit(limit)).all()
+    sessions = db.scalars(
+        select(StudySession)
+        .where(StudySession.owner_key == owner_key)
+        .order_by(StudySession.started_at.desc())
+        .limit(limit)
+    ).all()
     if not sessions:
         return []
 
     board_ids = {session.board_id for session in sessions}
-    boards = db.scalars(select(Board).where(Board.id.in_(board_ids))).all()
+    boards = db.scalars(
+        select(Board).where(
+            Board.id.in_(board_ids),
+            Board.owner_key == owner_key,
+        )
+    ).all()
     board_by_id = {board.id: board for board in boards}
 
     return [
@@ -56,12 +68,19 @@ def list_recent_sessions(
 
 
 @router.post("/start", response_model=SessionRead)
-def start_session(payload: SessionStartRequest, db: Session = Depends(get_db)) -> SessionRead:
-    board = db.get(Board, payload.board_id)
+def start_session(
+    payload: SessionStartRequest,
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> SessionRead:
+    board = db.scalar(
+        select(Board).where(Board.id == payload.board_id, Board.owner_key == owner_key)
+    )
     if not board:
         raise HTTPException(status_code=404, detail="Board not found.")
 
     session = StudySession(
+        owner_key=owner_key,
         board_id=board.id,
         score=0,
         total_questions=len(board.questions),
@@ -81,14 +100,22 @@ def submit_answer(
     session_id: str,
     payload: SessionAnswerRequest,
     db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
 ) -> SessionRead:
-    session = db.get(StudySession, session_id)
+    session = db.scalar(
+        select(StudySession).where(
+            StudySession.id == session_id,
+            StudySession.owner_key == owner_key,
+        )
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
     if session.finished_at is not None:
         raise HTTPException(status_code=400, detail="Session is already finished.")
 
-    board = db.get(Board, session.board_id)
+    board = db.scalar(
+        select(Board).where(Board.id == session.board_id, Board.owner_key == owner_key)
+    )
     if not board:
         raise HTTPException(status_code=404, detail="Board not found.")
 
@@ -128,8 +155,17 @@ def submit_answer(
 
 
 @router.post("/{session_id}/finish", response_model=SessionRead)
-def finish_session(session_id: str, db: Session = Depends(get_db)) -> SessionRead:
-    session = db.get(StudySession, session_id)
+def finish_session(
+    session_id: str,
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> SessionRead:
+    session = db.scalar(
+        select(StudySession).where(
+            StudySession.id == session_id,
+            StudySession.owner_key == owner_key,
+        )
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
 
@@ -143,12 +179,23 @@ def finish_session(session_id: str, db: Session = Depends(get_db)) -> SessionRea
 
 
 @router.get("/{session_id}/results", response_model=SessionResults)
-def get_results(session_id: str, db: Session = Depends(get_db)) -> SessionResults:
-    session = db.get(StudySession, session_id)
+def get_results(
+    session_id: str,
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> SessionResults:
+    session = db.scalar(
+        select(StudySession).where(
+            StudySession.id == session_id,
+            StudySession.owner_key == owner_key,
+        )
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
 
-    board = db.get(Board, session.board_id)
+    board = db.scalar(
+        select(Board).where(Board.id == session.board_id, Board.owner_key == owner_key)
+    )
     if not board:
         raise HTTPException(status_code=404, detail="Board not found.")
 
@@ -191,12 +238,23 @@ def get_results(session_id: str, db: Session = Depends(get_db)) -> SessionResult
 
 
 @router.get("/{session_id}/missed-csv")
-def export_missed_csv(session_id: str, db: Session = Depends(get_db)) -> StreamingResponse:
-    session = db.get(StudySession, session_id)
+def export_missed_csv(
+    session_id: str,
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> StreamingResponse:
+    session = db.scalar(
+        select(StudySession).where(
+            StudySession.id == session_id,
+            StudySession.owner_key == owner_key,
+        )
+    )
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
 
-    board = db.get(Board, session.board_id)
+    board = db.scalar(
+        select(Board).where(Board.id == session.board_id, Board.owner_key == owner_key)
+    )
     if not board:
         raise HTTPException(status_code=404, detail="Board not found.")
 

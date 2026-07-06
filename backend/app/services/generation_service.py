@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.core.config import get_settings
 from app.models.material import Material
 from app.schemas.generation import AIBoard, AIQuestion
+from app.services.materials_service import display_filename
 from app.services.prompts import (
     SYSTEM_PROMPT,
     json_repair_prompt,
@@ -63,9 +64,10 @@ class BoardGenerationService:
         self.client = OpenAI(api_key=resolved_key)
 
     def generate_topic_board(self, material: Material) -> dict:
+        readable_filename = display_filename(material.filename)
         prompt = topic_board_prompt(
             topic=material.topic,
-            filename=material.filename,
+            filename=readable_filename,
             extracted_text=self._build_topic_source(material),
         )
         ai_board = self._request_valid_board(prompt)
@@ -217,7 +219,7 @@ class BoardGenerationService:
                 piece = compact[start : start + MIXED_EXCERPT_LENGTH_CHARS].strip()
                 if piece:
                     snippets.append(
-                        f"[{material.topic} | {material.filename} | excerpt {index + 1}] {piece}"
+                        f"[{material.topic} | {display_filename(material.filename)} | excerpt {index + 1}] {piece}"
                     )
         return "\n\n".join(snippets)
 
@@ -232,7 +234,7 @@ class BoardGenerationService:
             piece = compact[start : start + TOPIC_EXCERPT_LENGTH_CHARS].strip()
             if piece:
                 snippets.append(
-                    f"[{material.topic} | {material.filename} | excerpt {index + 1}] {piece}"
+                    f"[{material.topic} | {display_filename(material.filename)} | excerpt {index + 1}] {piece}"
                 )
         return "\n\n".join(snippets)
 

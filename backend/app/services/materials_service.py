@@ -8,8 +8,19 @@ from app.services.pdf_extractor import extract_docx_text, extract_pdf_text
 from app.services.topic_mapping import expected_subject_filenames, topic_from_filename
 
 
+def storage_filename(owner_key: str, filename: str) -> str:
+    return f"{owner_key}::{filename}"
+
+
+def display_filename(stored_filename: str) -> str:
+    if "::" in stored_filename:
+        return stored_filename.split("::", 1)[1]
+    return stored_filename
+
+
 def upsert_material_from_bytes(
     db: Session,
+    owner_key: str,
     filename: str,
     file_bytes: bytes,
 ) -> Material:
@@ -21,8 +32,14 @@ def upsert_material_from_bytes(
     else:
         raise ValueError(f"Unsupported file format: {filename}")
 
+    stored_name = storage_filename(owner_key, filename)
     topic = topic_from_filename(filename)
-    existing = db.scalar(select(Material).where(Material.filename == filename))
+    existing = db.scalar(
+        select(Material).where(
+            Material.owner_key == owner_key,
+            Material.filename == stored_name,
+        )
+    )
     if existing:
         existing.topic = topic
         existing.extracted_text = extracted_text
@@ -32,7 +49,8 @@ def upsert_material_from_bytes(
         return existing
 
     material = Material(
-        filename=filename,
+        owner_key=owner_key,
+        filename=stored_name,
         topic=topic,
         extracted_text=extracted_text,
         page_count=page_count,
@@ -42,7 +60,11 @@ def upsert_material_from_bytes(
     return material
 
 
-def process_default_material_set(db: Session, docs_dir: Path) -> tuple[list[Material], list[str]]:
+def process_default_material_set(
+    db: Session,
+    docs_dir: Path,
+    owner_key: str,
+) -> tuple[list[Material], list[str]]:
     processed: list[Material] = []
     missing: list[str] = []
 
@@ -53,7 +75,7 @@ def process_default_material_set(db: Session, docs_dir: Path) -> tuple[list[Mate
             continue
 
         content = path.read_bytes()
-        processed.append(upsert_material_from_bytes(db, filename, content))
+        processed.append(upsert_material_from_bytes(db, owner_key, filename, content))
 
     db.commit()
     for material in processed:

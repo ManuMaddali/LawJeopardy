@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, MessageSquare, Send, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { askCopilot, getCopilotSuggestions } from "@/lib/api";
 import type { CopilotHistoryMessage, CopilotSource } from "@/lib/types";
@@ -20,6 +22,7 @@ const starterMessage =
   "Ask me anything from your uploaded bar materials. I will only answer from those documents.";
 
 export function CopilotWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [input, setInput] = useState("");
@@ -111,6 +114,10 @@ export function CopilotWidget() {
     }
   }
 
+  if (pathname === "/copilot") {
+    return null;
+  }
+
   return (
     <>
       <Button
@@ -133,13 +140,21 @@ export function CopilotWidget() {
                 <p className="text-xs text-muted-foreground">Answers only from uploaded materials</p>
               </div>
             </div>
-            <button
-              type="button"
-              className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              onClick={() => setOpen(false)}
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <Link
+                href="/copilot"
+                className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                Open page
+              </Link>
+              <button
+                type="button"
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-card p-4">

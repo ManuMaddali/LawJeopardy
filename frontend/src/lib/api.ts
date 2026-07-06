@@ -13,10 +13,23 @@ import type {
 } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const VISITOR_STORAGE_KEY = "gbj_visitor_id";
 
 type RequestOptions = {
   timeoutMs?: number;
 };
+
+function getVisitorId() {
+  if (typeof window === "undefined") return "anonymous";
+  const existing = window.localStorage.getItem(VISITOR_STORAGE_KEY);
+  if (existing) return existing;
+  const created =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `anon_${Math.random().toString(36).slice(2)}${Date.now()}`;
+  window.localStorage.setItem(VISITOR_STORAGE_KEY, created);
+  return created;
+}
 
 async function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
   const controller = new AbortController();
@@ -30,6 +43,7 @@ async function request<T>(path: string, init?: RequestInit, options?: RequestOpt
       signal: controller.signal,
       headers: {
         ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+        "X-Visitor-Id": getVisitorId(),
         ...init?.headers,
       },
       cache: "no-store",
@@ -165,11 +179,13 @@ export async function getSessionResults(sessionId: string) {
 }
 
 export function boardExportUrl(boardId: string) {
-  return `${API_BASE}/api/boards/${boardId}/export-json`;
+  const visitor = encodeURIComponent(getVisitorId());
+  return `${API_BASE}/api/boards/${boardId}/export-json?visitor_id=${visitor}`;
 }
 
 export function missedCsvUrl(sessionId: string) {
-  return `${API_BASE}/api/sessions/${sessionId}/missed-csv`;
+  const visitor = encodeURIComponent(getVisitorId());
+  return `${API_BASE}/api/sessions/${sessionId}/missed-csv?visitor_id=${visitor}`;
 }
 
 export async function resetBoard(boardId: string) {

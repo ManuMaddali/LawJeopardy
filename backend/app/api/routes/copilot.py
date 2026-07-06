@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_owner_key
 from app.db.session import get_db
 from app.models.material import Material
 from app.schemas.copilot import CopilotAskRequest, CopilotAskResponse, CopilotSuggestionsResponse
@@ -12,15 +13,30 @@ router = APIRouter()
 
 
 @router.get("/suggestions", response_model=CopilotSuggestionsResponse)
-def get_copilot_suggestions(db: Session = Depends(get_db)) -> CopilotSuggestionsResponse:
-    materials = db.scalars(select(Material).order_by(Material.topic.asc())).all()
+def get_copilot_suggestions(
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> CopilotSuggestionsResponse:
+    materials = db.scalars(
+        select(Material)
+        .where(Material.owner_key == owner_key)
+        .order_by(Material.topic.asc())
+    ).all()
     suggestions = CopilotService.default_suggestions(materials)
     return CopilotSuggestionsResponse(suggestions=suggestions)
 
 
 @router.post("/ask", response_model=CopilotAskResponse)
-def ask_copilot(payload: CopilotAskRequest, db: Session = Depends(get_db)) -> CopilotAskResponse:
-    materials = db.scalars(select(Material).order_by(Material.topic.asc())).all()
+def ask_copilot(
+    payload: CopilotAskRequest,
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> CopilotAskResponse:
+    materials = db.scalars(
+        select(Material)
+        .where(Material.owner_key == owner_key)
+        .order_by(Material.topic.asc())
+    ).all()
     if not materials:
         raise HTTPException(
             status_code=400,

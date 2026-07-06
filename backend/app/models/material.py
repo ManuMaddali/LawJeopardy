@@ -13,6 +13,7 @@ class Material(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    owner_key: Mapped[str] = mapped_column(String(64), nullable=False, default="anonymous")
     filename: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     topic: Mapped[str] = mapped_column(String(120), nullable=False)
     extracted_text: Mapped[str] = mapped_column(Text, nullable=False)

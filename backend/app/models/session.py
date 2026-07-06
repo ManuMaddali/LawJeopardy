@@ -13,6 +13,7 @@ class StudySession(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    owner_key: Mapped[str] = mapped_column(String(64), nullable=False, default="anonymous")
     board_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
     )

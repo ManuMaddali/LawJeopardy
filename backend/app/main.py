@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 
 from app.api.router import api_router
 from app.core.config import get_settings
@@ -24,6 +25,28 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+def _ensure_owner_columns() -> None:
+    inspector = inspect(engine)
+    required = {
+        "materials": "owner_key",
+        "boards": "owner_key",
+        "sessions": "owner_key",
+    }
+
+    with engine.begin() as connection:
+        for table_name, column_name in required.items():
+            existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+            if column_name in existing_cols:
+                continue
+            connection.execute(
+                text(
+                    f"ALTER TABLE {table_name} "
+                    "ADD COLUMN owner_key VARCHAR(64) NOT NULL DEFAULT 'anonymous'"
+                )
+            )
+
+
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    _ensure_owner_columns()

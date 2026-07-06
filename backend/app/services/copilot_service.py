@@ -8,6 +8,7 @@ from pydantic import BaseModel, ValidationError
 from app.core.config import get_settings
 from app.models.material import Material
 from app.schemas.copilot import CopilotHistoryMessage, CopilotSource
+from app.services.materials_service import display_filename
 
 
 STOPWORDS = {
@@ -100,7 +101,7 @@ class CopilotService:
                 chunks.append(
                     _ContextChunk(
                         context_id=context_id,
-                        filename=material.filename,
+                        filename=display_filename(material.filename),
                         topic=material.topic,
                         source_hint=f"{material.filename} — excerpt {index + 1}",
                         excerpt=excerpt,

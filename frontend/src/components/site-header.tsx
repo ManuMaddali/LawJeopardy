@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, LayoutGrid, Upload } from "lucide-react";
+import { BookOpenCheck, LayoutGrid, MessageSquare, Upload } from "lucide-react";
 
 import { ThemeSelector } from "@/components/theme-selector";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutGrid },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/boards", label: "Boards", icon: BookOpenCheck },
+  { href: "/copilot", label: "Copilot", icon: MessageSquare },
 ];
 
 export function SiteHeader() {
