@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 POINT_VALUES = [100, 200, 300, 400, 500]
 MIXED_CATEGORIES = ["MBE Traps", "Elements", "Exceptions", "Timing Rules", "Distinctions", "Random"]
+TOPIC_SOURCE_LIMIT_CHARS = 24_000
+MIXED_MATERIAL_LIMIT_CHARS = 12_000
+MIXED_SNIPPET_LENGTH_CHARS = 900
+OPENAI_TIMEOUT_SECONDS = 90
 TOPIC_TOKENS = sorted(
     {
         topic.lower()
@@ -61,7 +65,9 @@ class BoardGenerationService:
         prompt = topic_board_prompt(
             topic=material.topic,
             filename=material.filename,
-            extracted_text=self._truncate_for_prompt(material.extracted_text, 100_000),
+            extracted_text=self._truncate_for_prompt(
+                material.extracted_text, TOPIC_SOURCE_LIMIT_CHARS
+            ),
         )
         ai_board = self._request_valid_board(prompt)
         normalized = self._normalize_board(
@@ -107,6 +113,7 @@ class BoardGenerationService:
         response = self.client.chat.completions.create(
             model=self.model,
             temperature=0.3,
+            timeout=OPENAI_TIMEOUT_SECONDS,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -203,13 +210,15 @@ class BoardGenerationService:
     def _build_mixed_snippets(self, materials: list[Material]) -> str:
         snippets: list[str] = []
         for material in materials:
-            compact = self._truncate_for_prompt(material.extracted_text, 36_000)
+            compact = self._truncate_for_prompt(
+                material.extracted_text, MIXED_MATERIAL_LIMIT_CHARS
+            )
             if not compact:
                 continue
             block = max(len(compact) // 3, 1)
             starts = [0, block, block * 2]
             for index, start in enumerate(starts):
-                piece = compact[start : start + 1200].strip()
+                piece = compact[start : start + MIXED_SNIPPET_LENGTH_CHARS].strip()
                 if piece:
                     snippets.append(
                         f"[{material.topic} | {material.filename} | excerpt {index + 1}] {piece}"

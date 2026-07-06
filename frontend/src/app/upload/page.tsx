@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, UploadCloud } from "lucide-react";
 
 import {
-  generateFullStudySet,
+  generateMixedBoards,
+  generateTopicBoards,
   processDefaultMaterials,
   uploadMaterials,
 } from "@/lib/api";
@@ -111,9 +112,11 @@ export default function UploadPage() {
         }
       }
       setStep(3);
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      setMessage("Creating topic boards...");
+      await generateTopicBoards();
       setStep(4);
-      await generateFullStudySet();
+      setMessage("Creating mixed boards...");
+      await generateMixedBoards();
       setStep(5);
       setMessage("Full study set generated. Redirecting to boards...");
       setTimeout(() => router.push("/boards"), 550);
