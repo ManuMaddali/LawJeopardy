@@ -1,8 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Sparkles, UploadCloud } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  UploadCloud,
+} from "lucide-react";
 
 import {
   getBoards,
@@ -13,9 +21,14 @@ import {
 } from "@/lib/api";
 import type { BoardSummary } from "@/lib/types";
 import { EmptyState } from "@/components/empty-state";
+import { ErrorBanner } from "@/components/error-banner";
+import { PageHero } from "@/components/page-hero";
+import { ProgressTimeline, type TimelineStep } from "@/components/progress-timeline";
+import { Toast } from "@/components/toast";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 const expectedSubjects: Record<string, string> = {
   "Torts.pdf": "Torts",
@@ -27,16 +40,17 @@ const expectedSubjects: Record<string, string> = {
   "Civil-Procedure.pdf": "Civil Procedure",
 };
 
-const stepLabels = [
-  "Uploading",
-  "Extracting PDF text",
-  "Creating topic boards",
-  "Creating mixed boards",
-  "Done",
+const timelineSteps: TimelineStep[] = [
+  { label: "Uploading", description: "Sending your PDFs securely" },
+  { label: "Extracting PDF text", description: "Reading and indexing each subject" },
+  { label: "Creating topic boards", description: "One board per subject" },
+  { label: "Creating mixed boards", description: "Cross-subject challenge sets" },
+  { label: "Done", description: "Boards ready to play" },
 ];
 
 export default function UploadPage() {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [step, setStep] = useState<number>(0);
   const [running, setRunning] = useState(false);
@@ -44,6 +58,8 @@ export default function UploadPage() {
   const [completed, setCompleted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [toastOpen, setToastOpen] = useState(false);
 
   const recognized = useMemo(
     () =>
@@ -52,8 +68,6 @@ export default function UploadPage() {
         .filter((item) => Boolean(item.subject)),
     [files],
   );
-  const currentStepLabel =
-    step > 0 ? stepLabels[Math.min(step - 1, stepLabels.length - 1)] : null;
 
   function getBoardTypeCounts(boards: BoardSummary[]) {
     return boards.reduce(
@@ -102,20 +116,18 @@ export default function UploadPage() {
     }
   }
 
-  function handleFileInput(nextFiles: FileList | null) {
-    if (!nextFiles) return;
-    const pickedFiles = Array.from(nextFiles);
-    setFiles(pickedFiles);
+  function handleFiles(nextFiles: File[]) {
+    if (nextFiles.length === 0) return;
+    setFiles(nextFiles);
     setError(null);
     setMessage(null);
     setPrepared(false);
     setCompleted(false);
-    void prepareMaterials(pickedFiles);
+    void prepareMaterials(nextFiles);
   }
 
   async function handleGenerateFull() {
     if (running) return;
-
     setError(null);
     setMessage(null);
     setCompleted(false);
@@ -123,9 +135,7 @@ export default function UploadPage() {
     try {
       if (!prepared) {
         const prepSucceeded = await prepareMaterials();
-        if (!prepSucceeded) {
-          return;
-        }
+        if (!prepSucceeded) return;
       }
 
       setRunning(true);
@@ -136,10 +146,7 @@ export default function UploadPage() {
         await generateTopicBoards();
       } catch (topicError) {
         const boards = await getBoards();
-        const counts = getBoardTypeCounts(boards);
-        if (counts.topic < 7) {
-          throw topicError;
-        }
+        if (getBoardTypeCounts(boards).topic < 7) throw topicError;
         setMessage("Topic board generation finished server-side. Continuing...");
       }
 
@@ -149,123 +156,170 @@ export default function UploadPage() {
         await generateMixedBoards();
       } catch (mixedError) {
         const boards = await getBoards();
-        const counts = getBoardTypeCounts(boards);
-        if (counts.mixed < 4) {
-          throw mixedError;
-        }
+        if (getBoardTypeCounts(boards).mixed < 4) throw mixedError;
         setMessage("Mixed board generation finished server-side.");
       }
 
       setStep(5);
       setCompleted(true);
       setMessage("Study set generated successfully. Ready to play.");
+      setToastOpen(true);
+      window.setTimeout(() => setToastOpen(false), 4000);
     } catch (generateError) {
       setError(
-        generateError instanceof Error
-          ? generateError.message
-          : "Generation failed. Please retry.",
+        generateError instanceof Error ? generateError.message : "Generation failed. Please retry.",
       );
     } finally {
       setRunning(false);
     }
   }
 
+  const currentStep = completed ? timelineSteps.length : Math.max(0, step - 1);
+
   return (
-    <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-blue-100 via-cyan-50 to-amber-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-3xl">
-            <UploadCloud className="h-8 w-8 text-cyan-700" />
-            Build Your Study Set
-          </CardTitle>
-          <CardDescription className="text-slate-700">
-            Pick files once. Upload and processing start automatically, then generate boards.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-300 bg-white/90 p-8 text-center">
-            <input
-              type="file"
-              accept=".pdf,.docx"
-              multiple
-              className="hidden"
-              onChange={(event) => handleFileInput(event.target.files)}
-            />
-            <p className="font-semibold text-cyan-800">Click to select files</p>
-            <p className="text-sm text-slate-600">
-              PDFs recommended (DOCX optional). Upload and processing run automatically after selection.
-            </p>
-          </label>
+    <div className="space-y-8">
+      <PageHero
+        eyebrow={
+          <Badge variant="accent">
+            <UploadCloud className="h-3.5 w-3.5" />
+            Step 1 · Build your set
+          </Badge>
+        }
+        title="Build your study set"
+        description="Pick your subject PDFs once. Upload and processing start automatically, then generate every board in a single click."
+      />
 
-          <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/90 p-4">
-            <p className="text-sm font-semibold text-slate-700">Recognized subjects:</p>
-            {recognized.length === 0 ? (
-              <EmptyState
-                title="No files selected yet"
-                description="Choose your 7 PDFs to auto-upload and process."
-                className="py-4"
-              />
-            ) : (
-              recognized.map((item) => (
-                <p key={item.file} className="text-sm text-slate-700">
-                  {item.file}
-                  {" -> "}
-                  {item.subject}
-                </p>
-              ))
-            )}
-          </div>
+      {error ? (
+        <ErrorBanner
+          message={error}
+          hint="If this keeps happening, refresh and retry from this page."
+        />
+      ) : null}
 
-          <div className="flex flex-wrap gap-3">
-            <Button disabled={running} variant="outline" onClick={() => void prepareMaterials()}>
-              {running && step <= 2 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Re-run Upload + Process
-            </Button>
-            <Button disabled={running} onClick={handleGenerateFull}>
-              <Sparkles className="mr-2 h-4 w-4" />
-              {running && step >= 3 ? "Generating..." : "Generate Full Study Set"}
-            </Button>
-            <Button variant="outline" disabled={!completed} onClick={() => router.push("/boards")}>
-              View Boards
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Progress</CardTitle>
-          <CardDescription>Upload | process | generate | save</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Progress value={(step / stepLabels.length) * 100} />
-          {running && currentStepLabel ? (
-            <p className="text-sm font-semibold text-cyan-700">Working on: {currentStepLabel}</p>
-          ) : null}
-          <div className="grid gap-1">
-            {stepLabels.map((label, index) => (
-              <p
-                key={label}
-                className={index < step ? "text-sm text-cyan-700" : "text-sm text-slate-500"}
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload PDFs</CardTitle>
+              <CardDescription>Drag and drop your files, or browse to select them.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragging(false);
+                  handleFiles(Array.from(e.dataTransfer.files));
+                }}
+                className={cn(
+                  "flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                  dragging
+                    ? "border-primary bg-primary-soft"
+                    : "border-border bg-muted/40 hover:border-primary/50 hover:bg-muted",
+                )}
               >
-                {index + 1}. {label}
+                <span className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-soft text-primary-soft-foreground">
+                  <UploadCloud className="h-7 w-7" />
+                </span>
+                <p className="font-display text-base font-bold text-foreground">
+                  Drop PDFs here or click to browse
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  PDFs recommended (DOCX optional). Upload and processing run automatically.
+                </p>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf,.docx"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => handleFiles(Array.from(event.target.files ?? []))}
+                />
+              </button>
+
+              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                <p className="mb-3 text-sm font-semibold text-foreground">Recognized subjects</p>
+                {recognized.length === 0 ? (
+                  <EmptyState
+                    title="No files selected yet"
+                    description="Choose your subject PDFs to auto-detect and process them."
+                    className="py-5"
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {recognized.map((item) => (
+                      <span
+                        key={item.file}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary-soft px-3 py-1.5 text-sm font-medium text-primary-soft-foreground"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        {item.subject}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button disabled={running} variant="outline" onClick={() => void prepareMaterials()}>
+                  {running && step <= 2 ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Re-run Upload + Process
+                </Button>
+                <Button disabled={running} onClick={handleGenerateFull}>
+                  {running && step >= 3 ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {running && step >= 3 ? "Generating..." : "Generate Full Study Set"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="lg:sticky lg:top-24 lg:self-start">
+          <CardHeader>
+            <CardTitle>Progress</CardTitle>
+            <CardDescription>Upload, process, generate, and save.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <ProgressTimeline steps={timelineSteps} currentStep={currentStep} error={Boolean(error)} />
+
+            {completed ? (
+              <div className="space-y-3 rounded-2xl border border-success/25 bg-success-soft p-4">
+                <div className="flex items-center gap-2 font-semibold text-success-soft-foreground">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Generation complete
+                </div>
+                <p className="text-sm text-success-soft-foreground/90">
+                  Your boards are ready. Jump in and start playing.
+                </p>
+                <Button className="w-full" onClick={() => router.push("/boards")}>
+                  View Boards
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : message && !error ? (
+              <p className="rounded-xl border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                {message}
               </p>
-            ))}
-          </div>
-          {completed ? (
-            <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              <CheckCircle2 className="h-4 w-4" />
-              Generation complete. You can play now.
-            </div>
-          ) : null}
-          {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
-          {error ? (
-            <p className="text-sm text-rose-700">
-              {error} If this keeps happening, refresh and retry from this page.
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Toast open={toastOpen} message="Study set generated. Ready to play." onClose={() => setToastOpen(false)} />
     </div>
   );
 }
