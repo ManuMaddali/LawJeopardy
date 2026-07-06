@@ -1,4 +1,5 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -48,6 +49,28 @@ class Settings(BaseSettings):
             }
         )
         return sorted(cleaned)
+
+    @staticmethod
+    def _clean_secret(value: str) -> str:
+        cleaned = value.strip()
+        if cleaned.startswith('"') and cleaned.endswith('"'):
+            cleaned = cleaned[1:-1].strip()
+        if cleaned.startswith("'") and cleaned.endswith("'"):
+            cleaned = cleaned[1:-1].strip()
+        return cleaned
+
+    @property
+    def resolved_openai_api_key(self) -> str:
+        candidates = [
+            self.openai_api_key,
+            os.getenv("OPENAI_API_KEY", ""),
+            os.getenv("OPENAI_KEY", ""),
+            os.getenv("OPENAI_APIKEY", ""),
+        ]
+        for candidate in candidates:
+            if candidate and candidate.strip():
+                return self._clean_secret(candidate)
+        return ""
 
 
 @lru_cache

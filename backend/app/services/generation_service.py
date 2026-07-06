@@ -48,10 +48,14 @@ class BoardGenerationError(Exception):
 class BoardGenerationService:
     def __init__(self) -> None:
         settings = get_settings()
-        if not settings.openai_api_key:
-            raise BoardGenerationError("OPENAI_API_KEY is not configured.")
+        resolved_key = settings.resolved_openai_api_key
+        if not resolved_key:
+            raise BoardGenerationError(
+                "OPENAI_API_KEY is not configured in runtime environment. "
+                "Set OPENAI_API_KEY on the backend service and redeploy."
+            )
         self.model = settings.openai_model
-        self.client = OpenAI(api_key=settings.openai_api_key)
+        self.client = OpenAI(api_key=resolved_key)
 
     def generate_topic_board(self, material: Material) -> dict:
         prompt = topic_board_prompt(
