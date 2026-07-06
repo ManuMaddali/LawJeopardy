@@ -19,16 +19,23 @@ class Settings(BaseSettings):
 
     @property
     def resolved_docs_dir(self) -> Path:
-        base = Path(__file__).resolve().parents[3]
-        first_choice = base / self.default_docs_dir
-        if first_choice.exists():
-            return first_choice
+        config_path = Path(__file__).resolve()
+        backend_root = config_path.parents[2]
 
-        second_choice = base / "docs"
-        if second_choice.exists():
-            return second_choice
+        candidate_roots = [
+            Path.cwd(),
+            backend_root,
+            backend_root.parent,
+            Path("/app"),
+        ]
 
-        return first_choice
+        for root in candidate_roots:
+            for docs_name in (self.default_docs_dir, "Docs", "docs"):
+                candidate = root / docs_name
+                if candidate.exists():
+                    return candidate
+
+        return candidate_roots[0] / self.default_docs_dir
 
 
 @lru_cache

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+**/__pycache__
+**/*.pyc
+frontend/.next
+frontend/node_modules
+backend/.venv
+backend/local.db
+agent-transcripts
+mcps
+terminals

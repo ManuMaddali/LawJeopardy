@@ -61,16 +61,15 @@ alembic downgrade -1
 
 ## 5) Railway Deployment Steps (Backend)
 
-1. Create a new Railway project from `backend`.
+1. Create a new Railway service from this repository root.
 2. Add Postgres plugin/service in Railway.
-3. Set environment variables in Railway:
+3. Railway auto-detects the root `Dockerfile` for backend deploys.
+4. Set environment variables in Railway:
    - `DATABASE_URL`
    - `OPENAI_API_KEY`
    - `OPENAI_MODEL` (optional, default `gpt-4o-mini`)
    - `FRONTEND_ORIGIN` (your Vercel URL)
    - `DEFAULT_DOCS_DIR` (`Docs`)
-4. Set start command (or use `Procfile`):
-   - `uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`
 5. Deploy and verify `/health`.
 
 ## 6) Vercel Deployment Steps (Frontend)
