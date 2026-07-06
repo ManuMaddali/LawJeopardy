@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.material import Material
 from app.schemas.material import MaterialProcessResponse, MaterialRead
 from app.services.materials_service import process_default_material_set, upsert_material_from_bytes
+from app.services.topic_mapping import expected_subject_filenames
 
 
 router = APIRouter()
@@ -48,9 +49,30 @@ def process_default_set(db: Session = Depends(get_db)) -> MaterialProcessRespons
     settings = get_settings()
     docs_dir = settings.resolved_docs_dir
     if not docs_dir.exists():
-        raise HTTPException(status_code=404, detail=f"Docs directory not found at {docs_dir}")
+        existing_materials = db.scalars(select(Material).order_by(Material.created_at.desc())).all()
+        if existing_materials:
+            return MaterialProcessResponse(
+                processed=[MaterialRead.model_validate(material) for material in existing_materials],
+                missing_files=[],
+            )
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Docs directory not found at {docs_dir}. "
+                "Upload PDFs first, then retry."
+            ),
+        )
 
     processed, missing = process_default_material_set(db=db, docs_dir=docs_dir)
+    if not processed:
+        existing_materials = db.scalars(select(Material).order_by(Material.created_at.desc())).all()
+        if existing_materials:
+            return MaterialProcessResponse(
+                processed=[MaterialRead.model_validate(material) for material in existing_materials],
+                missing_files=[],
+            )
+        missing = expected_subject_filenames()
+
     return MaterialProcessResponse(
         processed=[MaterialRead.model_validate(material) for material in processed],
         missing_files=missing,

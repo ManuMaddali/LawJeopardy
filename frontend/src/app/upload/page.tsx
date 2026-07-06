@@ -100,7 +100,16 @@ export default function UploadPage() {
     setMessage(null);
     try {
       setStep(2);
-      await processDefaultMaterials();
+      try {
+        await processDefaultMaterials();
+      } catch (processError) {
+        const detail =
+          processError instanceof Error ? processError.message : "Process defaults unavailable.";
+        // In cloud deploys, default Docs folder may not exist. Continue with uploaded materials.
+        if (!detail.toLowerCase().includes("upload pdfs first")) {
+          setMessage("Skipping default docs scan. Generating from uploaded materials.");
+        }
+      }
       setStep(3);
       await new Promise((resolve) => setTimeout(resolve, 250));
       setStep(4);
