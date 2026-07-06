@@ -17,29 +17,37 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-        <Link
-          href="/"
-          className="bg-gradient-to-r from-blue-700 via-cyan-600 to-amber-600 bg-clip-text text-lg font-black tracking-wide text-transparent"
-        >
-          Georgia Bar Jeopardy
+    <header
+      className="sticky top-0 z-40 border-b backdrop-blur"
+      style={{ backgroundColor: "var(--header-bg)", borderColor: "var(--header-border)" }}
+    >
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3.5 md:px-8">
+        <Link href="/" className="flex items-center gap-2.5">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary font-display text-lg font-extrabold text-primary-foreground shadow-sm">
+            J
+          </span>
+          <span className="font-display text-base font-extrabold tracking-tight text-foreground sm:text-lg">
+            Georgia Bar Jeopardy
+          </span>
         </Link>
-        <div className="flex items-center gap-3">
-          <nav className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:gap-3">
+          <nav className="flex items-center gap-1">
             {navItems.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
                   key={href}
                   href={href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700",
-                    active && "bg-blue-100 text-blue-800",
+                    "inline-flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-semibold transition-colors sm:px-3",
+                    active
+                      ? "bg-primary-soft text-primary-soft-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
                 </Link>
               );
             })}

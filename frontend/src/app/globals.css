@@ -1,119 +1,223 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* Enable class/attribute-driven dark mode via data-theme="dark" */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --background: #f8fafc;
-  --foreground: #1f2937;
-  --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --muted: #64748b;
-  --border: #cbd5e1;
-  --header-bg: rgba(255, 255, 255, 0.85);
-  --header-border: rgba(226, 232, 240, 0.9);
+  --radius: 1rem;
+
+  /* Neutrals — warm light grays + slate text */
+  --background: #f6f5f2;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --muted: #eef1f6;
+  --muted-foreground: #5c6a7e;
+  --border: #e4e1da;
+  --input: #e4e1da;
+  --ring: #2952e3;
+
+  /* Primary — cobalt / royal blue */
+  --primary: #2952e3;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e7edfd;
+  --primary-soft-foreground: #1e3fb0;
+
+  /* Secondary — teal / cyan */
+  --secondary: #0d9488;
+  --secondary-foreground: #ffffff;
+  --secondary-soft: #dcf5f1;
+  --secondary-soft-foreground: #0a6b62;
+
+  /* Accent — amber / gold */
+  --accent: #f59e0b;
+  --accent-foreground: #422006;
+  --accent-soft: #fdf0d5;
+  --accent-soft-foreground: #92600a;
+
+  /* Support — emerald */
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --success-soft: #d9f6e8;
+  --success-soft-foreground: #06724e;
+
+  /* Support — coral / rose */
+  --danger: #e11d48;
+  --danger-foreground: #ffffff;
+  --danger-soft: #fde3e8;
+  --danger-soft-foreground: #b21237;
+
+  --warning: #f59e0b;
+  --warning-foreground: #422006;
+
+  --header-bg: rgba(255, 255, 255, 0.82);
+  --header-border: rgba(228, 225, 218, 0.9);
+}
+
+html[data-theme="dark"] {
+  --background: #0a0f1c;
+  --foreground: #e6ebf4;
+  --card: #121b2c;
+  --card-foreground: #e6ebf4;
+  --popover: #121b2c;
+  --popover-foreground: #e6ebf4;
+  --muted: #18233a;
+  --muted-foreground: #9aa8c0;
+  --border: #263450;
+  --input: #263450;
+  --ring: #5b81ff;
+
+  --primary: #5b81ff;
+  --primary-foreground: #0a0f1c;
+  --primary-soft: rgba(91, 129, 255, 0.16);
+  --primary-soft-foreground: #b9c9ff;
+
+  --secondary: #22c3b3;
+  --secondary-foreground: #052a26;
+  --secondary-soft: rgba(34, 195, 179, 0.16);
+  --secondary-soft-foreground: #93ece1;
+
+  --accent: #fbbf24;
+  --accent-foreground: #2a1a02;
+  --accent-soft: rgba(251, 191, 36, 0.16);
+  --accent-soft-foreground: #f8d488;
+
+  --success: #34d399;
+  --success-foreground: #04241a;
+  --success-soft: rgba(52, 211, 153, 0.16);
+  --success-soft-foreground: #9df0cf;
+
+  --danger: #fb5b78;
+  --danger-foreground: #2a0410;
+  --danger-soft: rgba(251, 91, 120, 0.16);
+  --danger-soft-foreground: #ffb3c1;
+
+  --warning: #fbbf24;
+  --warning-foreground: #2a1a02;
+
+  --header-bg: rgba(10, 15, 28, 0.82);
+  --header-border: rgba(38, 52, 80, 0.9);
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-html[data-theme="dark"] {
-  --background: #0b1220;
-  --foreground: #e2e8f0;
-  --surface: #111a2b;
-  --surface-muted: #162033;
-  --muted: #a8b3c7;
-  --border: #334155;
-  --header-bg: rgba(11, 18, 32, 0.82);
-  --header-border: rgba(51, 65, 85, 0.8);
-  color-scheme: dark;
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-secondary-soft-foreground: var(--secondary-soft-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-foreground: var(--accent-soft-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  transition: background-color 180ms ease, color 180ms ease;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  transition: background-color 200ms ease, color 200ms ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient page background — subtle, colorful, grounded */
+.ambient-bg {
+  background-image:
+    radial-gradient(circle at 12% -5%, rgba(41, 82, 227, 0.12), transparent 40%),
+    radial-gradient(circle at 88% 4%, rgba(13, 148, 136, 0.12), transparent 38%),
+    radial-gradient(circle at 78% 82%, rgba(245, 158, 11, 0.12), transparent 36%),
+    radial-gradient(circle at 8% 88%, rgba(225, 29, 72, 0.08), transparent 34%);
+}
+
+/* Hero gradient container */
+.hero-gradient {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 18%, var(--card)) 0%,
+    color-mix(in oklab, var(--secondary) 16%, var(--card)) 50%,
+    color-mix(in oklab, var(--accent) 20%, var(--card)) 100%
+  );
+}
+
+.hero-gradient-success {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--success) 20%, var(--card)) 0%,
+    color-mix(in oklab, var(--secondary) 16%, var(--card)) 55%,
+    color-mix(in oklab, var(--primary) 16%, var(--card)) 100%
+  );
+}
+
+/* Tile face used in the Jeopardy board */
+.tile-face {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--primary) 92%, white) 0%,
+    var(--primary) 55%,
+    color-mix(in oklab, var(--primary) 82%, black) 100%
+  );
+}
+
+@keyframes tokens-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in-up {
+  animation: tokens-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 * {
   border-color: var(--border);
 }
 
-html[data-theme="dark"] .bg-white,
-html[data-theme="dark"] .bg-white\/90,
-html[data-theme="dark"] .bg-white\/95 {
-  background-color: var(--surface) !important;
-}
-
-html[data-theme="dark"] .bg-slate-50,
-html[data-theme="dark"] .bg-slate-100 {
-  background-color: var(--surface-muted) !important;
-}
-
-html[data-theme="dark"] .bg-blue-50 {
-  background-color: rgb(30 58 138 / 0.24) !important;
-}
-
-html[data-theme="dark"] .bg-blue-100 {
-  background-color: rgb(30 64 175 / 0.32) !important;
-}
-
-html[data-theme="dark"] .hover\:bg-blue-50:hover {
-  background-color: rgb(30 64 175 / 0.35) !important;
-}
-
-html[data-theme="dark"] .hover\:bg-slate-100:hover {
-  background-color: rgb(30 41 59 / 0.8) !important;
-}
-
-html[data-theme="dark"] .text-slate-900,
-html[data-theme="dark"] .text-slate-800,
-html[data-theme="dark"] .text-slate-700 {
-  color: var(--foreground) !important;
-}
-
-html[data-theme="dark"] .text-slate-600,
-html[data-theme="dark"] .text-slate-500 {
-  color: var(--muted) !important;
-}
-
-html[data-theme="dark"] .border-slate-300,
-html[data-theme="dark"] .border-slate-200,
-html[data-theme="dark"] .border-blue-100,
-html[data-theme="dark"] .border-emerald-200,
-html[data-theme="dark"] .border-amber-200,
-html[data-theme="dark"] .border-rose-200 {
-  border-color: var(--border) !important;
-}
-
-html[data-theme="dark"] .border-slate-200\/80 {
-  border-color: var(--header-border) !important;
-}
-
-html[data-theme="dark"] .bg-white\/85 {
-  background-color: var(--header-bg) !important;
-}
-
-html[data-theme="dark"] .from-blue-100 {
-  --tw-gradient-from: rgb(30 58 138 / 0.52) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgb(30 58 138 / 0) var(--tw-gradient-to-position) !important;
-}
-
-html[data-theme="dark"] .from-emerald-100 {
-  --tw-gradient-from: rgb(6 95 70 / 0.55) var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgb(6 95 70 / 0) var(--tw-gradient-to-position) !important;
-}
-
-html[data-theme="dark"] .via-cyan-50 {
-  --tw-gradient-via: rgb(8 47 73 / 0.5) var(--tw-gradient-via-position) !important;
-}
-
-html[data-theme="dark"] .to-amber-100 {
-  --tw-gradient-to: rgb(120 53 15 / 0.5) var(--tw-gradient-to-position) !important;
-}
-
-html[data-theme="dark"] .to-blue-100 {
-  --tw-gradient-to: rgb(30 64 175 / 0.45) var(--tw-gradient-to-position) !important;
+::selection {
+  background: color-mix(in oklab, var(--primary) 26%, transparent);
 }

@@ -5,23 +5,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-xl text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-60",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500 text-white shadow-md hover:scale-[1.02] hover:shadow-lg",
+          "bg-primary text-primary-foreground shadow-sm hover:brightness-108 hover:shadow-md",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:brightness-108 hover:shadow-md",
         outline:
-          "border border-slate-300 bg-white text-slate-700 hover:bg-slate-100",
-        ghost: "text-slate-700 hover:bg-slate-100",
-        success: "bg-emerald-600 text-white hover:bg-emerald-500",
-        danger: "bg-rose-600 text-white hover:bg-rose-500",
-        warning: "bg-amber-500 text-slate-900 hover:bg-amber-400",
+          "border border-border bg-card text-foreground hover:bg-muted hover:border-primary/40",
+        ghost: "text-foreground hover:bg-muted",
+        soft: "bg-primary-soft text-primary-soft-foreground hover:brightness-97",
+        success: "bg-success text-success-foreground shadow-sm hover:brightness-108",
+        danger: "bg-danger text-danger-foreground shadow-sm hover:brightness-108",
+        warning: "bg-warning text-warning-foreground shadow-sm hover:brightness-105",
       },
       size: {
-        default: "h-11 px-5",
-        sm: "h-9 rounded-lg px-3",
+        default: "h-11 px-5 text-sm",
+        sm: "h-9 rounded-lg px-3.5 text-sm",
         lg: "h-12 px-7 text-base",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
