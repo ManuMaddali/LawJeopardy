@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -142,6 +142,39 @@ def generate_mixed_boards(
         created.append(BoardRead.model_validate(board))
 
     return MixedBoardsResponse(created=created)
+
+
+@router.post("/mixed-board/{board_number}", response_model=BoardRead)
+def generate_single_mixed_board(
+    board_number: int = Path(..., ge=1, le=4),
+    db: Session = Depends(get_db),
+    owner_key: str = Depends(get_owner_key),
+) -> BoardRead:
+    materials = db.scalars(
+        select(Material)
+        .where(Material.owner_key == owner_key)
+        .order_by(Material.topic.asc())
+    ).all()
+    if not materials:
+        raise HTTPException(status_code=400, detail="No materials available.")
+
+    try:
+        service = BoardGenerationService()
+        payload = service.generate_mixed_board(materials=materials, board_number=board_number)
+    except BoardGenerationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed generating mixed board {board_number}: {exc}",
+        ) from exc
+
+    board = _store_board(
+        db=db,
+        owner_key=owner_key,
+        board_type="mixed",
+        payload=payload,
+        primary_topic=None,
+    )
+    return BoardRead.model_validate(board)
 
 
 @router.post("/full-study-set")

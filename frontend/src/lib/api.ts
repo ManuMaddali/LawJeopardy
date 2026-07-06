@@ -5,6 +5,7 @@ import type {
   CopilotAskResponse,
   CopilotHistoryMessage,
   CopilotSuggestionsResponse,
+  Material,
   ProcessMaterialsResponse,
   RecentSession,
   SelectedResult,
@@ -80,6 +81,10 @@ export async function getBoards() {
   return request<BoardSummary[]>("/api/boards");
 }
 
+export async function getMaterials() {
+  return request<Material[]>("/api/materials");
+}
+
 export async function getBoard(boardId: string) {
   return request<Board>(`/api/boards/${boardId}`);
 }
@@ -123,6 +128,16 @@ export async function generateTopicBoards() {
   );
 }
 
+export async function generateTopicBoard(materialId: string) {
+  return request<Board>(
+    `/api/generate/topic-board/${materialId}`,
+    {
+      method: "POST",
+    },
+    { timeoutMs: 150_000 },
+  );
+}
+
 export async function generateMixedBoards() {
   return request<{ created: Board[] }>(
     "/api/generate/mixed-boards",
@@ -130,6 +145,16 @@ export async function generateMixedBoards() {
       method: "POST",
     },
     { timeoutMs: 300_000 },
+  );
+}
+
+export async function generateSingleMixedBoard(boardNumber: number) {
+  return request<Board>(
+    `/api/generate/mixed-board/${boardNumber}`,
+    {
+      method: "POST",
+    },
+    { timeoutMs: 180_000 },
   );
 }
 

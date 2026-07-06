@@ -14,8 +14,9 @@ import {
 
 import {
   getBoards,
-  generateMixedBoards,
-  generateTopicBoards,
+  getMaterials,
+  generateSingleMixedBoard,
+  generateTopicBoard,
   processDefaultMaterials,
   uploadMaterials,
 } from "@/lib/api";
@@ -139,25 +140,38 @@ export default function UploadPage() {
       }
 
       setRunning(true);
+      const initialBoards = await getBoards();
+      const initialCounts = getBoardTypeCounts(initialBoards);
+      const materials = (await getMaterials()).sort((a, b) => a.topic.localeCompare(b.topic));
+      if (materials.length === 0) {
+        throw new Error("No processed materials found. Please upload and process your PDFs first.");
+      }
 
       setStep(3);
-      setMessage("Creating topic boards...");
-      try {
-        await generateTopicBoards();
-      } catch (topicError) {
-        const boards = await getBoards();
-        if (getBoardTypeCounts(boards).topic < 7) throw topicError;
-        setMessage("Topic board generation finished server-side. Continuing...");
+      for (let index = 0; index < materials.length; index += 1) {
+        const material = materials[index];
+        setMessage(`Creating topic boards (${index + 1}/${materials.length}) · ${material.topic}...`);
+        try {
+          await generateTopicBoard(material.id);
+        } catch (topicError) {
+          const boards = await getBoards();
+          if (getBoardTypeCounts(boards).topic < initialCounts.topic + index + 1) {
+            throw topicError;
+          }
+        }
       }
 
       setStep(4);
-      setMessage("Creating mixed boards...");
-      try {
-        await generateMixedBoards();
-      } catch (mixedError) {
-        const boards = await getBoards();
-        if (getBoardTypeCounts(boards).mixed < 4) throw mixedError;
-        setMessage("Mixed board generation finished server-side.");
+      for (let index = 1; index <= 4; index += 1) {
+        setMessage(`Creating mixed boards (${index}/4)...`);
+        try {
+          await generateSingleMixedBoard(index);
+        } catch (mixedError) {
+          const boards = await getBoards();
+          if (getBoardTypeCounts(boards).mixed < initialCounts.mixed + index) {
+            throw mixedError;
+          }
+        }
       }
 
       setStep(5);
