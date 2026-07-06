@@ -16,11 +16,11 @@ export function SiteHeader() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/70 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 md:px-8">
         <Link
           href="/"
-          className="bg-gradient-to-r from-cyan-300 via-indigo-200 to-violet-300 bg-clip-text text-lg font-black tracking-wide text-transparent"
+          className="bg-gradient-to-r from-blue-700 via-cyan-600 to-amber-600 bg-clip-text text-lg font-black tracking-wide text-transparent"
         >
           Georgia Bar Jeopardy
         </Link>
@@ -32,8 +32,8 @@ export function SiteHeader() {
                 key={href}
                 href={href}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white",
-                  active && "bg-white/15 text-white",
+                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700",
+                  active && "bg-blue-100 text-blue-800",
                 )}
               >
                 <Icon className="h-4 w-4" />

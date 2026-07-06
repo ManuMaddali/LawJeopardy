@@ -33,7 +33,12 @@ async function request<T>(path: string, init?: RequestInit, options?: RequestOpt
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Request timed out. Please retry.");
+      throw new Error("That request took too long. Please retry.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error(
+        "Could not reach the server. Check that NEXT_PUBLIC_API_URL points to your live backend.",
+      );
     }
     throw error;
   } finally {

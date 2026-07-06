@@ -6,6 +6,7 @@ import { ArrowRight, BrainCircuit, Clock3, Trophy } from "lucide-react";
 
 import { getBoards, getRecentSessions } from "@/lib/api";
 import type { BoardSummary, RecentSession } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,20 +47,20 @@ export default function Home() {
 
   return (
     <div className="space-y-8">
-      <Card className="overflow-hidden border-indigo-300/20 bg-gradient-to-br from-indigo-900/70 via-slate-900 to-cyan-900/60">
+      <Card className="overflow-hidden border-blue-200 bg-gradient-to-br from-blue-100 via-cyan-50 to-amber-100">
         <CardHeader className="space-y-3">
           <Badge className="w-fit" variant="mixed">
             Georgia Bar Study Mode
           </Badge>
           <CardTitle className="text-4xl font-black md:text-5xl">Georgia Bar Jeopardy</CardTitle>
-          <CardDescription className="max-w-2xl text-base text-slate-200">
+          <CardDescription className="max-w-2xl text-base text-slate-700">
             Rule recall that does not feel like staring at another outline.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Card className="border-white/10 bg-white/10">
+          <Card className="border-blue-100 bg-white/90">
             <CardHeader>
-              <CardDescription className="flex items-center gap-2 text-slate-200">
+              <CardDescription className="flex items-center gap-2 text-slate-600">
                 <Clock3 className="h-4 w-4" />
                 Countdown
               </CardDescription>
@@ -84,8 +85,10 @@ export default function Home() {
       </Card>
 
       {error ? (
-        <Card className="border-rose-300/30 bg-rose-900/20">
-          <CardContent className="pt-5 text-rose-200">{error}</CardContent>
+        <Card className="border-rose-200 bg-rose-50">
+          <CardContent className="pt-5 text-rose-700">
+            {error} Make sure your backend is live, then refresh.
+          </CardContent>
         </Card>
       ) : null}
 
@@ -99,16 +102,25 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-3">
             {recentBoards.length === 0 ? (
-              <p className="text-sm text-slate-300">No boards yet. Start from upload to generate.</p>
+              <EmptyState
+                icon={BrainCircuit}
+                title="No boards yet"
+                description="Upload materials and generate your first study set."
+                action={
+                  <Button asChild size="sm">
+                    <Link href="/upload">Go to Upload</Link>
+                  </Button>
+                }
+              />
             ) : (
               recentBoards.map((board) => (
                 <div
                   key={board.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800/60 px-3 py-2"
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2"
                 >
                   <div>
-                    <p className="font-semibold text-white">{board.title}</p>
-                    <p className="text-xs text-slate-300">{board.topics.join(" | ")}</p>
+                    <p className="font-semibold text-slate-800">{board.title}</p>
+                    <p className="text-xs text-slate-500">{board.topics.join(" | ")}</p>
                   </div>
                   <Button asChild size="sm">
                     <Link href={`/play/${board.id}`}>Play</Link>
@@ -128,21 +140,30 @@ export default function Home() {
           </CardHeader>
           <CardContent className="space-y-3">
             {recentResults.length === 0 ? (
-              <p className="text-sm text-slate-300">No sessions finished yet.</p>
+              <EmptyState
+                icon={Trophy}
+                title="No results yet"
+                description="Play a board to start tracking scores and weak areas."
+                action={
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/boards">Browse Boards</Link>
+                  </Button>
+                }
+              />
             ) : (
               recentResults.slice(0, 5).map((result) => (
                 <div
                   key={result.id}
-                  className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-800/60 px-3 py-2"
+                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2"
                 >
                   <div>
-                    <p className="font-semibold text-white">{result.board_title}</p>
-                    <p className="text-xs text-slate-300">
+                    <p className="font-semibold text-slate-800">{result.board_title}</p>
+                    <p className="text-xs text-slate-500">
                       {result.correct_count}C / {result.incorrect_count}I / {result.skipped_count}S
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-cyan-200">{result.score}</span>
+                    <span className="font-bold text-blue-700">{result.score}</span>
                     <Button asChild size="sm" variant="outline">
                       <Link href={`/results/${result.id}`}>
                         View <ArrowRight className="ml-1 h-3 w-3" />

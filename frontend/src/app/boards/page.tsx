@@ -6,6 +6,7 @@ import { Filter, Play, RotateCcw } from "lucide-react";
 
 import { boardExportUrl, getBoards, resetBoard, resetBoardsByType } from "@/lib/api";
 import type { BoardSummary } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,11 @@ export default function BoardsPage() {
     try {
       setBoards(await getBoards());
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load boards.");
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Could not load boards right now.",
+      );
     }
   }, []);
 
@@ -60,7 +65,7 @@ export default function BoardsPage() {
       setActionMessage(`Reset ${title}. Removed ${result.deleted_sessions} session(s).`);
       await loadBoards();
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Failed to reset board.");
+      setError(resetError instanceof Error ? resetError.message : "Could not reset this board.");
     } finally {
       setResettingBoardId(null);
     }
@@ -83,7 +88,9 @@ export default function BoardsPage() {
       await loadBoards();
     } catch (resetError) {
       setError(
-        resetError instanceof Error ? resetError.message : `Failed to reset ${boardType} boards.`,
+        resetError instanceof Error
+          ? resetError.message
+          : `Could not reset ${boardType} boards.`,
       );
     } finally {
       setResettingType(null);
@@ -101,16 +108,16 @@ export default function BoardsPage() {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-slate-900 via-indigo-950/70 to-cyan-950/70">
+      <Card className="bg-gradient-to-br from-blue-100 via-cyan-50 to-amber-100">
         <CardHeader>
           <CardTitle className="text-3xl">Study Boards</CardTitle>
-          <CardDescription className="text-slate-200">
+          <CardDescription className="text-slate-700">
             Filter topic vs mixed boards, then jump straight into play mode.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <div>
-            <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Board Type</p>
+            <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">Board Type</p>
             <Select
               value={typeFilter}
               onValueChange={(value: string) => setTypeFilter(value as TypeFilter)}
@@ -126,7 +133,7 @@ export default function BoardsPage() {
             </Select>
           </div>
           <div>
-            <p className="mb-2 text-xs uppercase tracking-wide text-slate-400">Played Status</p>
+            <p className="mb-2 text-xs uppercase tracking-wide text-slate-500">Played Status</p>
             <Select
               value={playFilter}
               onValueChange={(value: string) => setPlayFilter(value as PlayFilter)}
@@ -151,66 +158,88 @@ export default function BoardsPage() {
       </Card>
 
       {actionMessage ? (
-        <Card className="border-emerald-300/30 bg-emerald-900/20">
-          <CardContent className="pt-5 text-emerald-200">{actionMessage}</CardContent>
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="pt-5 text-emerald-700">{actionMessage}</CardContent>
         </Card>
       ) : null}
 
       {error ? (
-        <Card className="border-rose-300/30 bg-rose-900/20">
-          <CardContent className="pt-5 text-rose-200">{error}</CardContent>
+        <Card className="border-rose-200 bg-rose-50">
+          <CardContent className="pt-5 text-rose-700">
+            {error} Try again in a moment.
+          </CardContent>
         </Card>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredBoards.map((board) => (
-          <Card key={board.id} className="flex flex-col justify-between">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{board.title}</CardTitle>
-                <Badge variant={board.board_type === "mixed" ? "mixed" : "default"}>
-                  {board.board_type}
-                </Badge>
-              </div>
-              <CardDescription>{board.topics.join(" | ")}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-xs text-slate-400">
-                Played: {board.played_sessions_count} | Created{" "}
-                {new Date(board.created_at).toLocaleDateString()}
-              </p>
-              <div className="grid gap-2">
-                <Button asChild className="w-full">
-                  <Link href={`/play/${board.id}`}>
-                    <Play className="mr-2 h-4 w-4" />
-                    Play Board
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <a href={boardExportUrl(board.id)} target="_blank" rel="noreferrer">
-                    Export JSON
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={resettingBoardId === board.id}
-                  onClick={() => void handleResetBoard(board.id, board.title)}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  {resettingBoardId === board.id ? "Resetting..." : "Reset Board"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {filteredBoards.length === 0 ? (
+        <EmptyState
+          icon={Filter}
+          title="No boards match these filters"
+          description="Try changing board type or played status."
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setTypeFilter("all");
+                setPlayFilter("all");
+              }}
+            >
+              Clear Filters
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredBoards.map((board) => (
+            <Card key={board.id} className="flex flex-col justify-between">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>{board.title}</CardTitle>
+                  <Badge variant={board.board_type === "mixed" ? "mixed" : "default"}>
+                    {board.board_type}
+                  </Badge>
+                </div>
+                <CardDescription>{board.topics.join(" | ")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-slate-500">
+                  Played: {board.played_sessions_count} | Created{" "}
+                  {new Date(board.created_at).toLocaleDateString()}
+                </p>
+                <div className="grid gap-2">
+                  <Button asChild className="w-full">
+                    <Link href={`/play/${board.id}`}>
+                      <Play className="mr-2 h-4 w-4" />
+                      Play Board
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <a href={boardExportUrl(board.id)} target="_blank" rel="noreferrer">
+                      Export JSON
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={resettingBoardId === board.id}
+                    onClick={() => void handleResetBoard(board.id, board.title)}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    {resettingBoardId === board.id ? "Resetting..." : "Reset Board"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Bulk Reset</CardTitle>
-          <CardDescription className="text-slate-300">
+          <CardDescription className="text-slate-600">
             Clear play history for all boards in one set.
           </CardDescription>
         </CardHeader>

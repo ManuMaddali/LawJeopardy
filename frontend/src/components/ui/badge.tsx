@@ -8,9 +8,9 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-indigo-300/30 bg-indigo-400/20 text-indigo-100",
-        mixed: "border-cyan-300/30 bg-cyan-400/20 text-cyan-100",
-        played: "border-emerald-300/30 bg-emerald-400/20 text-emerald-100",
+        default: "border-blue-200 bg-blue-100 text-blue-700",
+        mixed: "border-teal-200 bg-teal-100 text-teal-700",
+        played: "border-emerald-200 bg-emerald-100 text-emerald-700",
       },
     },
     defaultVariants: {

@@ -12,6 +12,7 @@ import {
   startSession,
 } from "@/lib/api";
 import type { Board, Question, SelectedResult, StudySession } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -103,26 +104,33 @@ export default function PlayBoardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-300" />
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-700" />
+        <p className="text-sm text-slate-600">Setting up your board...</p>
       </div>
     );
   }
 
   if (error || !board || !session) {
     return (
-      <Card className="border-rose-300/30 bg-rose-900/20">
-        <CardContent className="pt-5 text-rose-200">{error ?? "Board unavailable."}</CardContent>
-      </Card>
+      <EmptyState
+        title="Could not open this board"
+        description={error ?? "Board unavailable."}
+        action={
+          <Button variant="outline" onClick={() => router.push("/boards")}>
+            Back to Boards
+          </Button>
+        }
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-indigo-900/70 via-violet-900/60 to-cyan-900/60">
+      <Card className="bg-gradient-to-br from-blue-100 via-cyan-50 to-amber-100">
         <CardHeader>
           <CardTitle className="text-3xl">{board.title}</CardTitle>
-          <CardDescription className="text-slate-200">
+          <CardDescription className="text-slate-700">
             Score {session.score} | {answeredCount}/{totalQuestions} answered
           </CardDescription>
         </CardHeader>
@@ -133,7 +141,7 @@ export default function PlayBoardPage() {
               {isFinishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Flag className="mr-2 h-4 w-4" />}
               Finish Session
             </Button>
-            <p className="text-sm text-slate-300">
+            <p className="text-sm text-slate-600">
               Correct {session.correct_count} | Incorrect {session.incorrect_count} | Skipped{" "}
               {session.skipped_count}
             </p>
@@ -148,7 +156,7 @@ export default function PlayBoardPage() {
         >
           {board.categories.map((category) => (
             <div key={category} className="space-y-3">
-              <div className="rounded-xl bg-gradient-to-r from-indigo-500/80 to-cyan-500/80 px-3 py-4 text-center font-bold text-white">
+              <div className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 px-3 py-4 text-center font-bold text-white">
                 {category}
               </div>
               {pointValues.map((points) => {
@@ -166,7 +174,7 @@ export default function PlayBoardPage() {
                         setAnswerVisible(false);
                       }
                     }}
-                    className="flex h-20 w-full items-center justify-center rounded-xl border border-indigo-300/30 bg-slate-900/80 text-2xl font-black text-amber-300 shadow-lg transition disabled:cursor-not-allowed disabled:opacity-35"
+                    className="flex h-20 w-full items-center justify-center rounded-xl border border-blue-200 bg-white text-2xl font-black text-blue-700 shadow-md transition hover:border-blue-300 disabled:cursor-not-allowed disabled:opacity-35"
                   >
                     ${points}
                   </motion.button>
@@ -188,11 +196,13 @@ export default function PlayBoardPage() {
                 <DialogTitle>
                   {selectedQuestion.category} | ${selectedQuestion.points}
                 </DialogTitle>
-                <DialogDescription>Read the clue, think, then reveal.</DialogDescription>
+                <DialogDescription>
+                  Read the clue, make your call, then reveal the answer.
+                </DialogDescription>
               </DialogHeader>
 
-              <Card className="border-indigo-300/30 bg-indigo-950/40">
-                <CardContent className="pt-4 text-base leading-relaxed text-slate-100">
+              <Card className="border-blue-200 bg-blue-50">
+                <CardContent className="pt-4 text-base leading-relaxed text-slate-800">
                   {selectedQuestion.clue}
                 </CardContent>
               </Card>
@@ -203,17 +213,17 @@ export default function PlayBoardPage() {
                   Show Answer
                 </Button>
               ) : (
-                <Card className="border-emerald-300/30 bg-emerald-950/30">
+                <Card className="border-emerald-200 bg-emerald-50">
                   <CardContent className="space-y-2 pt-4 text-sm">
                     <p>
-                      <span className="font-semibold text-emerald-200">Answer:</span>{" "}
+                      <span className="font-semibold text-emerald-700">Answer:</span>{" "}
                       {selectedQuestion.answer}
                     </p>
                     <p>
-                      <span className="font-semibold text-emerald-200">Explanation:</span>{" "}
+                      <span className="font-semibold text-emerald-700">Explanation:</span>{" "}
                       {selectedQuestion.explanation}
                     </p>
-                    <p className="text-slate-300">
+                    <p className="text-slate-600">
                       Topic: {selectedQuestion.topic} | {selectedQuestion.source_hint}
                     </p>
                   </CardContent>
@@ -244,10 +254,10 @@ export default function PlayBoardPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full border border-emerald-200/40 bg-emerald-500/90 px-4 py-2 text-emerald-950 shadow-2xl"
+            className="fixed bottom-6 right-6 flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100 px-4 py-2 text-emerald-800 shadow-lg"
           >
             <Sparkles className="h-4 w-4" />
-            Great call.
+            Nice hit.
           </motion.div>
         ) : null}
       </AnimatePresence>
