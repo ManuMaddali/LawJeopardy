@@ -37,6 +37,18 @@ class Settings(BaseSettings):
 
         return candidate_roots[0] / self.default_docs_dir
 
+    @property
+    def frontend_origins(self) -> list[str]:
+        raw_origins = [origin.strip() for origin in self.frontend_origin.split(",")]
+        cleaned = {origin.rstrip("/") for origin in raw_origins if origin}
+        cleaned.update(
+            {
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            }
+        )
+        return sorted(cleaned)
+
 
 @lru_cache
 def get_settings() -> Settings:

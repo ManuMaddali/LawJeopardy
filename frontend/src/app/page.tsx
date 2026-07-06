@@ -10,10 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const nextExamDate = new Date("2027-02-24T09:00:00");
+function getNextExamDate(now: Date = new Date()) {
+  const thisYearExam = new Date(now.getFullYear(), 6, 28, 9, 0, 0, 0); // July is month index 6
+  if (now.getTime() <= thisYearExam.getTime()) {
+    return thisYearExam;
+  }
+  return new Date(now.getFullYear() + 1, 6, 28, 9, 0, 0, 0);
+}
 
-function daysUntilExam() {
-  const diff = nextExamDate.getTime() - Date.now();
+function daysUntilExam(examDate: Date) {
+  const diff = examDate.getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
@@ -35,7 +41,7 @@ export default function Home() {
     void load();
   }, []);
 
-  const countdown = useMemo(() => daysUntilExam(), []);
+  const countdown = useMemo(() => daysUntilExam(getNextExamDate()), []);
   const recentBoards = boards.slice(0, 4);
 
   return (
