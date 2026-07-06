@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpenCheck, LayoutGrid, Upload } from "lucide-react";
 
+import { ThemeSelector } from "@/components/theme-selector";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -24,24 +25,27 @@ export function SiteHeader() {
         >
           Georgia Bar Jeopardy
         </Link>
-        <nav className="flex items-center gap-2">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(`${href}/`);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700",
-                  active && "bg-blue-100 text-blue-800",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-2">
+            {navItems.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || pathname.startsWith(`${href}/`);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700",
+                    active && "bg-blue-100 text-blue-800",
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+          <ThemeSelector />
+        </div>
       </div>
     </header>
   );
