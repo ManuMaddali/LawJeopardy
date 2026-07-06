@@ -2,14 +2,16 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles, UploadCloud } from "lucide-react";
+import { CheckCircle2, Loader2, Sparkles, UploadCloud } from "lucide-react";
 
 import {
+  getBoards,
   generateMixedBoards,
   generateTopicBoards,
   processDefaultMaterials,
   uploadMaterials,
 } from "@/lib/api";
+import type { BoardSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -29,7 +31,7 @@ const stepLabels = [
   "Extracting PDF text",
   "Creating topic boards",
   "Creating mixed boards",
-  "Saving games",
+  "Done",
 ];
 
 export default function UploadPage() {
@@ -37,6 +39,8 @@ export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [step, setStep] = useState<number>(0);
   const [running, setRunning] = useState(false);
+  const [prepared, setPrepared] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,78 +52,110 @@ export default function UploadPage() {
     [files],
   );
 
-  function handleFileInput(nextFiles: FileList | null) {
-    if (!nextFiles) return;
-    setFiles(Array.from(nextFiles));
-    setError(null);
-    setMessage(null);
+  function getBoardTypeCounts(boards: BoardSummary[]) {
+    return boards.reduce(
+      (acc, board) => {
+        if (board.board_type === "topic") acc.topic += 1;
+        if (board.board_type === "mixed") acc.mixed += 1;
+        return acc;
+      },
+      { topic: 0, mixed: 0 },
+    );
   }
 
-  async function handleUpload() {
-    if (files.length === 0) {
-      setError("Select your PDFs first.");
-      return;
-    }
+  async function prepareMaterials(inputFiles?: File[]): Promise<boolean> {
+    const selectedFiles = inputFiles ?? files;
     setRunning(true);
     setError(null);
     setMessage(null);
-    setStep(1);
-    try {
-      await uploadMaterials(files);
-      setMessage("Upload complete. You can now process and generate boards.");
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
-    } finally {
-      setRunning(false);
-    }
-  }
+    setCompleted(false);
 
-  async function handleProcessDefaults() {
-    setRunning(true);
-    setError(null);
-    setMessage(null);
     try {
+      if (selectedFiles.length > 0) {
+        setStep(1);
+        setMessage("Uploading selected PDFs...");
+        await uploadMaterials(selectedFiles);
+      }
+
       setStep(2);
+      setMessage("Extracting and indexing materials...");
       const response = await processDefaultMaterials();
+      setPrepared(true);
+
       if (response.missing_files.length > 0) {
         setMessage(
-          `Processed available files. Missing: ${response.missing_files.join(", ")}.`,
+          `Materials ready from uploaded files. Missing default docs: ${response.missing_files.join(", ")}.`,
         );
       } else {
-        setMessage(`Processed ${response.processed.length} subject files.`);
+        setMessage(`Materials ready. Processed ${response.processed.length} subject files.`);
       }
-    } catch (processError) {
-      setError(processError instanceof Error ? processError.message : "Process step failed.");
+      return true;
+    } catch (prepareError) {
+      setError(prepareError instanceof Error ? prepareError.message : "Preparation failed.");
+      setPrepared(false);
+      return false;
     } finally {
       setRunning(false);
     }
+  }
+
+  function handleFileInput(nextFiles: FileList | null) {
+    if (!nextFiles) return;
+    const pickedFiles = Array.from(nextFiles);
+    setFiles(pickedFiles);
+    setError(null);
+    setMessage(null);
+    setPrepared(false);
+    setCompleted(false);
+    void prepareMaterials(pickedFiles);
   }
 
   async function handleGenerateFull() {
-    setRunning(true);
+    if (running) return;
+
     setError(null);
     setMessage(null);
+    setCompleted(false);
+
     try {
-      setStep(2);
-      try {
-        await processDefaultMaterials();
-      } catch (processError) {
-        const detail =
-          processError instanceof Error ? processError.message : "Process defaults unavailable.";
-        // In cloud deploys, default Docs folder may not exist. Continue with uploaded materials.
-        if (!detail.toLowerCase().includes("upload pdfs first")) {
-          setMessage("Skipping default docs scan. Generating from uploaded materials.");
+      if (!prepared) {
+        const prepSucceeded = await prepareMaterials();
+        if (!prepSucceeded) {
+          return;
         }
       }
+
+      setRunning(true);
+
       setStep(3);
       setMessage("Creating topic boards...");
-      await generateTopicBoards();
+      try {
+        await generateTopicBoards();
+      } catch (topicError) {
+        const boards = await getBoards();
+        const counts = getBoardTypeCounts(boards);
+        if (counts.topic < 7) {
+          throw topicError;
+        }
+        setMessage("Topic board generation finished server-side. Continuing...");
+      }
+
       setStep(4);
       setMessage("Creating mixed boards...");
-      await generateMixedBoards();
+      try {
+        await generateMixedBoards();
+      } catch (mixedError) {
+        const boards = await getBoards();
+        const counts = getBoardTypeCounts(boards);
+        if (counts.mixed < 4) {
+          throw mixedError;
+        }
+        setMessage("Mixed board generation finished server-side.");
+      }
+
       setStep(5);
-      setMessage("Full study set generated. Redirecting to boards...");
-      setTimeout(() => router.push("/boards"), 550);
+      setCompleted(true);
+      setMessage("Study set generated successfully. Ready to play.");
     } catch (generateError) {
       setError(generateError instanceof Error ? generateError.message : "Generation failed.");
     } finally {
@@ -136,7 +172,7 @@ export default function UploadPage() {
             Upload Study Materials
           </CardTitle>
           <CardDescription className="text-slate-200">
-            Upload the 7 Georgia bar subject PDFs, process text, and generate topic + mixed boards.
+            Choose the 7 PDFs once. Upload + processing starts automatically, then generate boards.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -149,7 +185,9 @@ export default function UploadPage() {
               onChange={(event) => handleFileInput(event.target.files)}
             />
             <p className="font-semibold text-cyan-100">Click to select files</p>
-            <p className="text-sm text-slate-300">PDFs recommended (DOCX optional).</p>
+            <p className="text-sm text-slate-300">
+              PDFs recommended (DOCX optional). Upload and processing run automatically after selection.
+            </p>
           </label>
 
           <div className="grid gap-2 rounded-xl border border-white/10 bg-slate-900/60 p-4">
@@ -168,16 +206,16 @@ export default function UploadPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled={running} onClick={handleUpload}>
-              {running && step === 1 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Upload PDFs
+            <Button disabled={running} variant="outline" onClick={() => void prepareMaterials()}>
+              {running && step <= 2 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Re-run Upload & Process
             </Button>
-            <Button disabled={running} variant="outline" onClick={handleProcessDefaults}>
-              Process PDFs
-            </Button>
-            <Button disabled={running} variant="outline" onClick={handleGenerateFull}>
+            <Button disabled={running} onClick={handleGenerateFull}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Generate Full Study Set
+              {running && step >= 3 ? "Generating..." : "Generate Full Study Set"}
+            </Button>
+            <Button variant="outline" disabled={!completed} onClick={() => router.push("/boards")}>
+              View Boards
             </Button>
           </div>
         </CardContent>
@@ -200,6 +238,12 @@ export default function UploadPage() {
               </p>
             ))}
           </div>
+          {completed ? (
+            <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/30 bg-emerald-900/30 px-3 py-2 text-sm text-emerald-200">
+              <CheckCircle2 className="h-4 w-4" />
+              Generation complete. You can play now.
+            </div>
+          ) : null}
           {message ? <p className="text-sm text-emerald-300">{message}</p> : null}
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
         </CardContent>

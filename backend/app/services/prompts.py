@@ -2,7 +2,9 @@ SYSTEM_PROMPT = (
     "You generate bar exam Jeopardy study boards from provided bar prep materials. "
     "The uploaded material is the source of truth. Be accurate to the text. "
     "Do not invent jurisdiction-specific rules unless the provided material states them. "
-    "Create useful rule-based questions for bar exam review. Return strict valid JSON only. No markdown."
+    "Create useful rule-based questions for bar exam review. Prefer high-yield black-letter rules, "
+    "tests, elements, exceptions, and common MBE traps. If the provided material does not support a rule, "
+    "do not guess. Return strict valid JSON only. No markdown."
 )
 
 
@@ -37,6 +39,9 @@ Rules:
 - Use points 100, 200, 300, 400, 500 once per category.
 - No duplicate clues in this board.
 - Question styles must include rule recall, elements, exceptions, MBE traps, mini hypotheticals, timing rules, distinctions.
+- Use content from across the provided excerpts, not just one section.
+- Explanations must be exam-usable and include key missing elements or limits where relevant.
+- If the excerpt does not clearly support a specific statement, avoid that statement.
 
 Extracted text:
 \"\"\"
@@ -86,6 +91,8 @@ Rules:
 - No duplicate clues in this board.
 - Random category clues must not mention the subject name directly.
 - In Random category, the answer or explanation should reveal the subject.
+- Distribute questions across different subjects so one subject does not dominate.
+- Use only rules supported by the provided snippets.
 
 Subject snippets:
 \"\"\"

@@ -22,9 +22,10 @@ logger = logging.getLogger(__name__)
 
 POINT_VALUES = [100, 200, 300, 400, 500]
 MIXED_CATEGORIES = ["MBE Traps", "Elements", "Exceptions", "Timing Rules", "Distinctions", "Random"]
-TOPIC_SOURCE_LIMIT_CHARS = 24_000
-MIXED_MATERIAL_LIMIT_CHARS = 12_000
-MIXED_SNIPPET_LENGTH_CHARS = 900
+TOPIC_EXCERPT_COUNT = 6
+TOPIC_EXCERPT_LENGTH_CHARS = 1_700
+MIXED_EXCERPT_COUNT = 3
+MIXED_EXCERPT_LENGTH_CHARS = 850
 OPENAI_TIMEOUT_SECONDS = 90
 TOPIC_TOKENS = sorted(
     {
@@ -65,9 +66,7 @@ class BoardGenerationService:
         prompt = topic_board_prompt(
             topic=material.topic,
             filename=material.filename,
-            extracted_text=self._truncate_for_prompt(
-                material.extracted_text, TOPIC_SOURCE_LIMIT_CHARS
-            ),
+            extracted_text=self._build_topic_source(material),
         )
         ai_board = self._request_valid_board(prompt)
         normalized = self._normalize_board(
@@ -112,7 +111,7 @@ class BoardGenerationService:
     def _chat_json(self, user_prompt: str) -> str:
         response = self.client.chat.completions.create(
             model=self.model,
-            temperature=0.3,
+            temperature=0.15,
             timeout=OPENAI_TIMEOUT_SECONDS,
             response_format={"type": "json_object"},
             messages=[
@@ -210,20 +209,46 @@ class BoardGenerationService:
     def _build_mixed_snippets(self, materials: list[Material]) -> str:
         snippets: list[str] = []
         for material in materials:
-            compact = self._truncate_for_prompt(
-                material.extracted_text, MIXED_MATERIAL_LIMIT_CHARS
-            )
+            compact = " ".join(material.extracted_text.split())
             if not compact:
                 continue
-            block = max(len(compact) // 3, 1)
-            starts = [0, block, block * 2]
+            starts = self._sample_starts(len(compact), MIXED_EXCERPT_COUNT)
             for index, start in enumerate(starts):
-                piece = compact[start : start + MIXED_SNIPPET_LENGTH_CHARS].strip()
+                piece = compact[start : start + MIXED_EXCERPT_LENGTH_CHARS].strip()
                 if piece:
                     snippets.append(
                         f"[{material.topic} | {material.filename} | excerpt {index + 1}] {piece}"
                     )
         return "\n\n".join(snippets)
+
+    def _build_topic_source(self, material: Material) -> str:
+        compact = " ".join(material.extracted_text.split())
+        if not compact:
+            return ""
+
+        snippets: list[str] = []
+        starts = self._sample_starts(len(compact), TOPIC_EXCERPT_COUNT)
+        for index, start in enumerate(starts):
+            piece = compact[start : start + TOPIC_EXCERPT_LENGTH_CHARS].strip()
+            if piece:
+                snippets.append(
+                    f"[{material.topic} | {material.filename} | excerpt {index + 1}] {piece}"
+                )
+        return "\n\n".join(snippets)
+
+    @staticmethod
+    def _sample_starts(total_length: int, excerpt_count: int) -> list[int]:
+        if total_length <= 0 or excerpt_count <= 0:
+            return [0]
+        if excerpt_count == 1:
+            return [0]
+
+        max_start = max(total_length - 1, 0)
+        starts = {
+            min(int((max_start * idx) / (excerpt_count - 1)), max_start)
+            for idx in range(excerpt_count)
+        }
+        return sorted(starts)
 
     @staticmethod
     def _normalize_difficulty(raw_difficulty: str | None, points: int) -> str:

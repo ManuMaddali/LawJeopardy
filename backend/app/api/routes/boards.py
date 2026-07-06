@@ -1,6 +1,8 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -57,3 +59,39 @@ def export_board_json(board_id: str, db: Session = Depends(get_db)) -> JSONRespo
         payload,
         headers={"Content-Disposition": f'attachment; filename="{board.title.replace(" ", "_")}.json"'},
     )
+
+
+@router.post("/{board_id}/reset")
+def reset_board_sessions(board_id: str, db: Session = Depends(get_db)) -> dict[str, int | str]:
+    board = db.get(Board, board_id)
+    if not board:
+        raise HTTPException(status_code=404, detail="Board not found.")
+
+    result = db.execute(delete(StudySession).where(StudySession.board_id == board_id))
+    db.commit()
+    return {
+        "board_id": board_id,
+        "deleted_sessions": int(result.rowcount or 0),
+    }
+
+
+@router.post("/reset-by-type/{board_type}")
+def reset_sessions_by_board_type(
+    board_type: Literal["topic", "mixed"],
+    db: Session = Depends(get_db),
+) -> dict[str, int | str]:
+    board_ids = db.scalars(select(Board.id).where(Board.board_type == board_type)).all()
+    if not board_ids:
+        return {
+            "board_type": board_type,
+            "boards_affected": 0,
+            "deleted_sessions": 0,
+        }
+
+    result = db.execute(delete(StudySession).where(StudySession.board_id.in_(board_ids)))
+    db.commit()
+    return {
+        "board_type": board_type,
+        "boards_affected": len(board_ids),
+        "deleted_sessions": int(result.rowcount or 0),
+    }

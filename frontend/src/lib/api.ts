@@ -1,6 +1,7 @@
 import type {
   Board,
   BoardSummary,
+  BoardType,
   ProcessMaterialsResponse,
   RecentSession,
   SelectedResult,
@@ -10,15 +11,34 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...init?.headers,
-    },
-    cache: "no-store",
-  });
+type RequestOptions = {
+  timeoutMs?: number;
+};
+
+async function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
+  const controller = new AbortController();
+  const timeoutMs = options?.timeoutMs ?? 30_000;
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+        ...init?.headers,
+      },
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Request timed out. Please retry.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     let detail = "Request failed.";
@@ -51,28 +71,44 @@ export async function uploadMaterials(files: File[]) {
   for (const file of files) {
     form.append("files", file);
   }
-  return request<ProcessMaterialsResponse>("/api/materials/upload", {
-    method: "POST",
-    body: form,
-  });
+  return request<ProcessMaterialsResponse>(
+    "/api/materials/upload",
+    {
+      method: "POST",
+      body: form,
+    },
+    { timeoutMs: 180_000 },
+  );
 }
 
 export async function processDefaultMaterials() {
-  return request<ProcessMaterialsResponse>("/api/materials/process-default-set", {
-    method: "POST",
-  });
+  return request<ProcessMaterialsResponse>(
+    "/api/materials/process-default-set",
+    {
+      method: "POST",
+    },
+    { timeoutMs: 180_000 },
+  );
 }
 
 export async function generateTopicBoards() {
-  return request<{ created: Board[] }>("/api/generate/all-topic-boards", {
-    method: "POST",
-  });
+  return request<{ created: Board[] }>(
+    "/api/generate/all-topic-boards",
+    {
+      method: "POST",
+    },
+    { timeoutMs: 300_000 },
+  );
 }
 
 export async function generateMixedBoards() {
-  return request<{ created: Board[] }>("/api/generate/mixed-boards", {
-    method: "POST",
-  });
+  return request<{ created: Board[] }>(
+    "/api/generate/mixed-boards",
+    {
+      method: "POST",
+    },
+    { timeoutMs: 300_000 },
+  );
 }
 
 export async function generateFullStudySet() {
@@ -80,9 +116,13 @@ export async function generateFullStudySet() {
     topic_boards: Board[];
     mixed_boards: Board[];
     missing_files: string[];
-  }>("/api/generate/full-study-set", {
-    method: "POST",
-  });
+  }>(
+    "/api/generate/full-study-set",
+    {
+      method: "POST",
+    },
+    { timeoutMs: 420_000 },
+  );
 }
 
 export async function startSession(boardId: string) {
@@ -122,4 +162,19 @@ export function boardExportUrl(boardId: string) {
 
 export function missedCsvUrl(sessionId: string) {
   return `${API_BASE}/api/sessions/${sessionId}/missed-csv`;
+}
+
+export async function resetBoard(boardId: string) {
+  return request<{ board_id: string; deleted_sessions: number }>(`/api/boards/${boardId}/reset`, {
+    method: "POST",
+  });
+}
+
+export async function resetBoardsByType(boardType: Extract<BoardType, "topic" | "mixed">) {
+  return request<{ board_type: string; boards_affected: number; deleted_sessions: number }>(
+    `/api/boards/reset-by-type/${boardType}`,
+    {
+      method: "POST",
+    },
+  );
 }
